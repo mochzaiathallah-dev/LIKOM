@@ -38,8 +38,8 @@ function emojiForCaption(caption: string): string {
 // ── OpenAI-compatible fetch (IDRouter / DeepSeek) ────────────────────────────
 async function callAI(systemPrompt: string, userMessage: string): Promise<string> {
   const baseUrl  = process.env.OPENAI_BASE_URL  || 'https://id.solution.qzz.io/v1';
-  const apiKey   = process.env.OPENAI_API_KEY   || '';
-  const model    = process.env.OPENAI_MODEL     || 'ocg/deepseek-v4-flash';
+  const apiKey   = process.env.OPENAI_API_KEY   || 'idr_q2XBL9fVpn32SzRusrPN4KzfbG9km-Pz';
+  const model    = process.env.OPENAI_MODEL     || 'deepseek-v4-flash-oc';
 
   if (!apiKey) throw new Error('OPENAI_API_KEY not set');
 
@@ -56,7 +56,7 @@ async function callAI(systemPrompt: string, userMessage: string): Promise<string
         { role: 'user',   content: userMessage  },
       ],
       max_tokens: 120,
-      temperature: 0.85,
+      temperature: 0.7,
     }),
   });
 
@@ -76,9 +76,9 @@ export async function POST(request: Request) {
   let instruction = '', caption = '', targetUsername = '';
 
   try {
-    const body    = await request.json();
-    instruction   = body.instruction   || '';
-    caption       = body.caption       || '';
+    const body     = await request.json();
+    instruction    = body.instruction   || '';
+    caption        = body.caption       || '';
     targetUsername = body.targetUsername || '';
 
     const gender  = inferGender(targetUsername);
@@ -101,39 +101,37 @@ export async function POST(request: Request) {
     const hasInstruction = instruction.trim().length > 0;
 
     // Determine strict word length rule from instruction
-    let wordRule = 'Panjang: 1-2 kalimat pendek saja (natural)';
+    let wordRule = 'Panjang: 3 sampai 6 kata pendek saja, santai dan ramah';
     if (/2\s*kata/i.test(instruction)) {
       wordRule = 'JUMLAH KATA: TEPAT 2 KATA SAJA (DILARANG LEBIH ATAU KURANG DARI 2 KATA! Contoh: "Keren banget!", "Gemoy parah!")';
-    } else if (/(?:3-4|3\s*sampai\s*4|3\s*atau\s*4|3|4)\s*kata/i.test(instruction)) {
+    } else if (/(?:3-4|3\s*sampai\s*4|3\s*atau\s*4)\s*kata/i.test(instruction)) {
       wordRule = 'JUMLAH KATA: TEPAT 3 SAMPAI 4 KATA SAJA (DILARANG KURANG DARI 3 KATA, DILARANG LEBIH DARI 4 KATA!)';
-    } else if (/(?:5-6|5\s*sampai\s*6|5\s*atau\s*6|5|6)\s*kata/i.test(instruction)) {
-      wordRule = 'JUMLAH KATA: TEPAT 5 SAMPAI 6 KATA SAJA (DILARANG LEBIH DARI 6 KATA!)';
-    } else if (/(?:7-8|7\s*sampai\s*8|7|8)\s*kata/i.test(instruction)) {
+    } else if (/(?:5-6|5\s*sampai\s*6|5\s*atau\s*6)\s*kata/i.test(instruction)) {
+      wordRule = 'JUMLAH KATA: TEPAT 5 SAMPAI 6 KATA SAJA (DILARANG KURANG DARI 5 KATA, DILARANG LEBIH DARI 6 KATA!)';
+    } else if (/(?:7-8|7\s*sampai\s*8)\s*kata/i.test(instruction)) {
       wordRule = 'JUMLAH KATA: TEPAT 7 SAMPAI 8 KATA SAJA';
     }
 
-    const systemPrompt = `Kamu adalah seorang laki-laki Gen Z Indonesia berumur 22 tahun yang aktif di Instagram.
+    const systemPrompt = `Kamu adalah seorang pengguna Instagram Gen Z Indonesia yang ramah, sopan, dan santai.
 
-TUGAS UTAMA: Baca caption Instagram di bawah ini dengan sangat teliti, pahami topik dan konteksnya, lalu tulis komentar yang SPESIFIK dan RELEVAN dengan isi caption tersebut.
+TUGAS UTAMA: Buatkan 1 baris komentar Instagram yang ramah, positif, dan alami.
 
-ATURAN WAJIB:
-- Komentar HARUS mencerminkan bahwa kamu benar-benar MEMBACA dan MEMAHAMI caption
-- Sebutkan detail spesifik dari caption (nama produk, nama orang/hewan, situasi, dll)
-- Gaya bahasa: santai, Gen Z Indonesia (boleh pakai: sih, nih, gokil, keren, mantap, parah)
-- Panggil pemilik postingan dengan "${pronoun}"
-- ${wordRule}
-- DILARANG KERAS membuat komentar umum seperti "Keren banget", "Mantap", "Sukses terus" tanpa konteks caption
-- JANGAN pernah menyebut bahwa kamu AI
-- Output: HANYA teks komentar langsung, tanpa tanda kutip, tanpa penjelasan apapun`;
+ATURAN SANGAT PENTING:
+- PANGGILAN: Panggil pembuat postingan dengan kata "${pronoun}".
+- ATURAN PANJANG KATA: ${wordRule}.
+- APAPUN TERJADI, kamu HARUS LANGSUNG mengeluarkan 1 kalimat komentar siap pakai!
+- DILARANG MENOLAK! DILARANG meminta maaf, DILARANG bilang "caption tidak ada" atau "tidak bisa bikin komentar". 
+- Jika caption tidak ada, buatlah komentar pujian atau sapaan yang positif dan cocok untuk postingan Instagram umum.
+- DILARANG menyebut bahwa kamu AI.
+- HASILKAN HANYA TEKS KOMENTAR SAJA (Tanpa tanda kutip, tanpa kalimat pembuka/penutup).`;
 
-    // ── 2. AI via IDRouter / DeepSeek ────────────────────────────────────────
     const captionBlock = caption.trim()
-      ? `Caption postingan (BACA BAIK-BAIK):\n---\n${caption.slice(0, 1200)}\n---`
-      : 'Caption tidak tersedia dari ekstensi.';
+      ? `Caption postingan:\n---\n${caption.slice(0, 1200)}\n---`
+      : `Catatan: Buat komentar positif umum yang ramah untuk postingan ini.`;
 
     const instrBlock = hasInstruction
-      ? `Instruksi khusus dari user (PERHATIKAN JUMLAH KATA KHUSUS JIKA ADA): "${instruction}"`
-      : `TIDAK ADA instruksi khusus. Tugasmu murni: baca caption di atas dengan teliti dan tulis komentar yang spesifik tentang isi/topik caption tersebut. Jangan buat komentar generik.`;
+      ? `Instruksi dari user: "${instruction}"`
+      : `Buatkan komentar umum yang sangat bagus dan positif.`;
 
     const userMsg = [captionBlock, instrBlock].join('\n\n');
 
@@ -144,67 +142,13 @@ ATURAN WAJIB:
     } catch (aiErr: unknown) {
       const msg = aiErr instanceof Error ? aiErr.message : String(aiErr);
       console.error('  → AI FAILED:', msg);
-      // Fall through to template
     }
 
-    // ── 3. Caption-aware template fallback ───────────────────────────────────
-    const c = caption.toLowerCase();
-    const customMatch = instrLower.match(/(?:komen\s+)?(?:tentang|soal|bahas)\s+(.+)/);
-    let comment: string;
-
-    if (customMatch?.[1]) {
-      const topic = customMatch[1].trim();
-      comment = gender === 'female'
-        ? `Wah ${topic}-nya keren banget ${pronoun}! Suka banget. 😍`
-        : `Gokil sih ${topic}-nya ${pronoun}, keren parah! 🔥`;
-
-    } else if (instrLower.includes('tanya')) {
-      if (/kucing|anabul|kitten|royal canin/.test(c))
-        comment = `Anabul ${pronoun} pakai ini udah berapa lama? Cocok gak ${pronoun}?`;
-      else if (/kopi|cafe|coffee/.test(c))
-        comment = `Menu andalan di sana apa ${pronoun}? Pengen ke sana juga nih.`;
-      else if (/suntik|vaksin|dokter/.test(c))
-        comment = `Gimana rasanya ${pronoun}? Sakit gak? Dan berapa biayanya?`;
-      else if (/kamera|foto/.test(c))
-        comment = `Kameranya tipe apa ${pronoun}? Hasilnya jernih banget!`;
-      else
-        comment = `Spill dong ${pronoun}, penasaran banget sama ini!`;
-
-    } else if (/royal canin|whiskas|makanan kucing|pakan/.test(c)) {
-      comment = `Bener banget ${pronoun}, Royal Canin emang terpercaya buat anabul! 👍`;
-    } else if (/kucing|anabul|kitten|bew|simba/.test(c)) {
-      comment = `Gemoy banget ${pronoun} anabulnya, bikin gemes liat-lihatnya! 😻`;
-    } else if (/kopi|cafe|coffee|nongkrong/.test(c)) {
-      comment = `Vibes tempatnya asik parah ${pronoun}, estetik banget! ☕`;
-    } else if (/makan|kuliner|enak|food/.test(c)) {
-      comment = `Bikin ngiler parah ${pronoun}, menunya keliatan nampol! 😋`;
-    } else if (/suntik|vaksin|skincare|dokter/.test(c)) {
-      comment = `Semoga hasilnya memuaskan ${pronoun}, semangat ya! 💪`;
-    } else if (/kamera|foto|photo|video/.test(c)) {
-      comment = `Hasil fotonya keren parah ${pronoun}, aesthetic banget! 📸`;
-    } else if (/ootd|outfit|baju|fashion/.test(c)) {
-      comment = `Kece parah ${pronoun}, outfit-nya cocok banget! 🔥`;
-    } else if (/travel|liburan|wisata|pantai|gunung/.test(c)) {
-      comment = `Vibes tempatnya keren banget ${pronoun}, jadi pengen liburan juga! ✈️`;
-    } else {
-      // Extract real words from caption for last-resort comment
-      const words = caption
-        .replace(/#\S+/g, '').replace(/@\S+/g, '')
-        .split(/[\s,.!?]+/).filter(w => w.length > 4).slice(0, 2).join(' ');
-      comment = words
-        ? `Wah ${words}-nya keren banget ${pronoun}! 🔥`
-        : `Mantap banget ${pronoun}, kontennya selalu menarik! 🙌`;
-    }
-
-    console.log('  → TEMPLATE:', comment);
+    // Fallback if AI is offline
+    const fallbackComment = `Keren banget postnya ${pronoun}, sehat selalu ya!`;
     return cors(NextResponse.json({
-      comment,
-      source: 'template',
-      debug: {
-        captionReceived: caption.slice(0, 80) || '(EMPTY)',
-        instruction: instruction || '(EMPTY)',
-        username: targetUsername || '(EMPTY)',
-      },
+      comment: fallbackComment,
+      source: 'fallback'
     }));
 
   } catch (err: unknown) {

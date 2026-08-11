@@ -125,7 +125,7 @@ https://www.instagram.com/reel/DbxBUOISw66/`;
     );
   };
 
-  // Execute task (Smart Desktop + Mobile/Tablet Handler)
+  // Execute task (Direct & Synchronous to avoid pop-up blocking)
   const handleExecute = async (id: string, url: string, instruction: string) => {
     const cleanInstruction = instruction.trim();
     const match = url.match(/\/(?:p|reel)\/([a-zA-Z0-9_\-]+)/);
@@ -139,10 +139,12 @@ https://www.instagram.com/reel/DbxBUOISw66/`;
         postId: postId,
         instruction: cleanInstruction
       }, '*');
-      showToast('🚀 Mengirim tugas ke Ekstensi... Tab Instagram dibuka otomatis!');
+      showToast('🚀 Tab Instagram dibuka via Ekstensi!');
     } else {
-      // Mobile / Tablet / No-Extension Mode: Generate AI comment, copy to clipboard, and open Instagram App
-      showToast('⏳ Membuat komentar AI...');
+      // Mobile / Non-extension mode: Open tab IMMEDIATELY to bypass popup blocker
+      window.open(url, '_blank', 'noreferrer,noopener');
+
+      // Simultaneously generate and copy AI comment to clipboard
       try {
         const res = await fetch('/api/generate-smart', {
           method: 'POST',
@@ -150,21 +152,15 @@ https://www.instagram.com/reel/DbxBUOISw66/`;
           body: JSON.stringify({ instruction: cleanInstruction, caption: '' })
         });
         const data = await res.json();
-        
         if (data.comment) {
           await navigator.clipboard.writeText(data.comment);
           setCopiedId(id);
           setTimeout(() => setCopiedId(null), 3000);
-          showToast(`📋 Komentar tersalin: "${data.comment}". Membuka Aplikasi Instagram...`);
+          showToast(`📋 Komentar tersalin: "${data.comment}". Silakan Paste di Instagram!`);
         }
       } catch (err) {
-        console.error('Error generating AI comment for mobile:', err);
+        console.error('Error generating AI comment:', err);
       }
-
-      // Open Instagram app or web
-      setTimeout(() => {
-        window.open(url, '_blank', 'noreferrer,noopener');
-      }, 500);
     }
 
     setTasks(prevTasks => 
@@ -184,7 +180,7 @@ https://www.instagram.com/reel/DbxBUOISw66/`;
     if (uncompletedTask) {
       handleExecute(uncompletedTask.id, uncompletedTask.url, uncompletedTask.instruction);
     } else if (tasks.length > 0) {
-      alert('Semua tugas LIKOM pada daftar ini sudah selesai (Sudah Like & Komen)!');
+      alert('Semua tugas LIKOM pada daftar ini sudah selesai!');
     }
   };
 
@@ -270,13 +266,13 @@ https://www.instagram.com/reel/DbxBUOISw66/`;
             ) : isMobileDevice ? (
               <div className="bg-blue-500/10 border border-blue-500/30 text-blue-400 px-3 py-1.5 rounded-full text-xs flex items-center gap-1.5">
                 <Smartphone className="w-3.5 h-3.5" />
-                <span className="font-medium">Mode HP / Tablet Active (Auto Copy Comment)</span>
+                <span className="font-medium">Mode HP / Tablet Active</span>
               </div>
             ) : (
               <div className="bg-amber-500/10 border border-amber-500/30 text-amber-300 px-3 py-1.5 rounded-full text-xs flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 text-amber-400 shrink-0" />
                 <span className="hidden sm:inline">Harap buka <code className="bg-amber-950 px-1 py-0.5 rounded text-amber-200">chrome://extensions/</code> lalu klik <b>Segarkan (↺)</b></span>
-                <span className="sm:hidden">Muat Ekstensi Chrome</span>
+                <span className="sm:hidden">Muat Ekstensi</span>
               </div>
             )}
           </div>
@@ -343,7 +339,8 @@ https://www.instagram.com/reel/DbxBUOISw66/`;
             </h4>
             <ul className="list-disc list-inside space-y-1 pl-1">
               <li><b>Di Laptop/PC:</b> Gunakan Ekstensi Chrome untuk Auto-Like & Auto-Komen otomatis saat klik Eksekusi.</li>
-              <li><b>Di HP / Tablet:</b> Klik <b className="text-purple-300">Eksekusi (Buka IG)</b> → Komentar AI akan <b>otomatis tersalin ke Clipboard HP</b> & Aplikasi Instagram terbuka → Tinggal <b>Paste & Kirim!</b></li>
+              <li><b>Di HP / Tablet:</b> Klik <b className="text-purple-300">Eksekusi (Buka IG)</b> $\rightarrow$ Komentar AI akan <b>otomatis tersalin ke Clipboard HP</b> & Aplikasi Instagram terbuka $\rightarrow$ Tinggal <b>Paste & Kirim!</b></li>
+              <li><b>Jika Pop-up Terblokir di HP:</b> Izinkan pop-up di browser HP ("Selalu Tampilkan / Always Allow").</li>
             </ul>
           </div>
         </section>
