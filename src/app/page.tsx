@@ -170,8 +170,12 @@ https://www.instagram.com/reel/DbxBUOISw66/`;
     );
   };
 
-  // Auto-execute the next uncompleted task
+  const [cooldown, setCooldown] = useState(0);
+
+  // Auto-execute the next uncompleted task with human-like delay protection
   const handleExecuteNext = () => {
+    if (cooldown > 0) return;
+
     const uncompletedTask = tasks.find(t => {
       const st = liveStatuses[t.postId];
       return !(st?.isLiked && st?.isCommented);
@@ -179,6 +183,17 @@ https://www.instagram.com/reel/DbxBUOISw66/`;
 
     if (uncompletedTask) {
       handleExecute(uncompletedTask.id, uncompletedTask.url, uncompletedTask.instruction);
+      // Start 5-second cooldown to protect Instagram account from action-blocks
+      setCooldown(5);
+      const timer = setInterval(() => {
+        setCooldown(prev => {
+          if (prev <= 1) {
+            clearInterval(timer);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
     } else if (tasks.length > 0) {
       alert('Semua tugas LIKOM pada daftar ini sudah selesai!');
     }
@@ -362,10 +377,15 @@ https://www.instagram.com/reel/DbxBUOISw66/`;
             {tasks.length > 0 && (
               <button
                 onClick={handleExecuteNext}
-                className="bg-emerald-600 hover:bg-emerald-500 text-white px-3.5 py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors shadow-lg shadow-emerald-900/30 w-full sm:w-auto"
+                disabled={cooldown > 0}
+                className={`px-3.5 py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors shadow-lg w-full sm:w-auto ${
+                  cooldown > 0
+                    ? 'bg-slate-700 text-slate-400 cursor-not-allowed border border-slate-600'
+                    : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-900/30'
+                }`}
               >
                 <Play className="w-3.5 h-3.5 fill-current" />
-                Eksekusi Tautan Berikutnya
+                {cooldown > 0 ? `Jeda Aman (${cooldown}s)` : 'Eksekusi Tautan Berikutnya'}
               </button>
             )}
           </div>

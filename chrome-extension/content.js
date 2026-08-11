@@ -6,12 +6,10 @@
   if (window.location.host.includes('localhost') || window.location.host.includes('127.0.0.1')) {
     console.log('[LIKOM HELPER] Extension Content Script attached to LIKOM Dashboard.');
 
-    // Continuously inform Dashboard UI that extension is active & ready
     setInterval(() => {
       window.postMessage({ type: 'LIKOM_EXTENSION_READY' }, '*');
     }, 800);
 
-    // Listen for tab open & instruction store requests from Dashboard UI
     window.addEventListener('message', (event) => {
       if (event.data && event.data.type === 'LIKOM_OPEN_TAB') {
         const { url, postId, instruction } = event.data;
@@ -29,9 +27,8 @@
   }
 
   // 2. Instagram Page Automation & Tracking (runs on instagram.com)
-  console.log('[LIKOM HELPER] Content script active on Instagram.');
+  console.log('[LIKOM HELPER] Human-like Content script active on Instagram.');
 
-  // Extract post ID from URL (e.g. /reel/DbvXESRceS/ -> "DbvXESRceS")
   function getPostId() {
     const match = window.location.pathname.match(/\/(?:p|reel)\/([a-zA-Z0-9_\-]+)/);
     return match ? match[1] : null;
@@ -39,7 +36,6 @@
 
   const postId = getPostId();
 
-  // Status tracking state
   let currentLikedState = false;
   let currentCommentedState = false;
 
@@ -58,7 +54,6 @@
     });
   }
 
-  // Check if post is currently Liked by inspecting Instagram's heart icon SVG
   function checkIsLiked() {
     const redHearts = document.querySelectorAll(
       'svg[aria-label="Unlike"], svg[aria-label="Batal Suka"], svg[color="rgb(255, 48, 64)"], svg[color="rgb(237, 73, 86)"], svg[fill="#ff3040"]'
@@ -66,7 +61,7 @@
     return redHearts.length > 0;
   }
 
-  // Auto-like post when opened if not liked yet
+  // Human-like Like with realistic delay
   function autoLikeIfNeeded() {
     if (checkIsLiked()) {
       currentLikedState = true;
@@ -79,20 +74,23 @@
     for (const svg of unlikedSvgs) {
       const btn = svg.closest('div[role="button"]');
       if (btn) {
-        console.log('[LIKOM HELPER] Auto-liking post...');
-        btn.click();
-        currentLikedState = true;
-        syncStatus(true, currentCommentedState);
+        // Human delay (2.5 - 4 seconds) before liking
+        const humanDelay = 2500 + Math.random() * 1500;
+        setTimeout(() => {
+          if (!checkIsLiked()) {
+            console.log(`[LIKOM HELPER] Liking post (Human delay: ${Math.round(humanDelay)}ms)...`);
+            btn.click();
+            currentLikedState = true;
+            syncStatus(true, currentCommentedState);
+          }
+        }, humanDelay);
         break;
       }
     }
   }
 
-  // Check if user has commented or has posted a comment
   function checkIsCommented() {
     const myHandle = 'mzaa_offc';
-
-    // Scan all links in comment list for user profile links
     const allLinks = document.querySelectorAll('a[role="link"], a');
     for (const a of allLinks) {
       const text = a.textContent.trim().toLowerCase();
@@ -105,11 +103,9 @@
         }
       }
     }
-
     return currentCommentedState;
   }
 
-  // Monitor DOM for Like button clicks and Comment button clicks
   function monitorLikeAndComment() {
     if (!postId) return;
 
@@ -122,7 +118,6 @@
       syncStatus(currentLikedState, currentCommentedState);
     }
 
-    // Attach click listeners to all Like buttons on page
     const likeButtons = document.querySelectorAll('div[role="button"] svg[aria-label="Like"], div[role="button"] svg[aria-label="Suka"], div[role="button"] svg[aria-label="Unlike"], div[role="button"] svg[aria-label="Batal Suka"]');
     likeButtons.forEach(svg => {
       const btn = svg.closest('div[role="button"]');
@@ -137,7 +132,6 @@
       }
     });
 
-    // Attach click listeners to Post / Kirim buttons
     const postButtons = document.querySelectorAll('div[role="button"]');
     postButtons.forEach(btn => {
       const text = btn.textContent.trim().toLowerCase();
@@ -156,7 +150,6 @@
 
   if (!postId) return;
 
-  // Retrieve instruction from Chrome local storage OR query string fallback
   const urlParams = new URLSearchParams(window.location.search);
   const queryInstruction = urlParams.get('likom_instruction');
 
@@ -174,14 +167,14 @@
     const instruction = storedInstruction || queryInstruction;
 
     if (!instruction) {
-      console.log('[LIKOM HELPER] No instruction found for this post. Running in passive sync mode.');
+      console.log('[LIKOM HELPER] No instruction found for this post. Running in315152341253452');
       return;
     }
 
-    console.log(`[LIKOM HELPER] Active instruction retrieved for post ${postId}: "${instruction}". Executing...`);
+    console.log(`[LIKOM HELPER] Active instruction: "${instruction}". Waiting for human-like timing...`);
 
-    // Auto-like
-    setTimeout(autoLikeIfNeeded, 1200);
+    // Trigger human-like like
+    autoLikeIfNeeded();
 
     const captionSelectors = [
       'article h1 span',
@@ -208,8 +201,6 @@
     const intervalId = setInterval(() => {
       searchAttempts++;
 
-      autoLikeIfNeeded();
-
       const commentInput = findElement(inputSelectors);
       const targetUsername = extractUsername();
       const captionText = extractCaption(targetUsername);
@@ -220,7 +211,7 @@
         }
 
         clearInterval(intervalId);
-        console.log('[LIKOM HELPER] Comment input field found!');
+        console.log('[LIKOM HELPER] Comment input field found! Fetching AI comment...');
 
         chrome.runtime.sendMessage(
           { 
@@ -233,15 +224,18 @@
             if (chrome.runtime.lastError) return;
 
             if (response && response.success && response.comment) {
-              console.log(`[LIKOM HELPER] AI Smart Comment received: "${response.comment}"`);
-              injectComment(commentInput, response.comment);
+              console.log(`[LIKOM HELPER] AI Comment: "${response.comment}". Simulating human typing...`);
+              // Human delay before typing (1.5 - 3 seconds)
+              setTimeout(() => {
+                humanTypeComment(commentInput, response.comment);
+              }, 1500 + Math.random() * 1500);
             }
           }
         );
       } else if (searchAttempts >= maxAttempts) {
         clearInterval(intervalId);
       }
-    }, 500);
+    }, 600);
   });
 
   function findElement(selectors) {
@@ -366,40 +360,51 @@
     return '';
   }
 
-  function injectComment(inputElement, text) {
+  // Simulate realistic human typing character by character into Instagram input
+  function humanTypeComment(inputElement, text) {
     inputElement.focus();
+    let currentText = '';
+    let charIndex = 0;
 
-    if (inputElement.tagName === 'TEXTAREA') {
-      try {
-        const nativeValueSetter = Object.getOwnPropertyDescriptor(
-          HTMLTextAreaElement.prototype,
-          'value'
-        ).set;
-        nativeValueSetter.call(inputElement, text);
-        
-        inputElement.dispatchEvent(new Event('input', { bubbles: true }));
-        inputElement.dispatchEvent(new Event('change', { bubbles: true }));
-      } catch (e) {
-        inputElement.value = text;
-        inputElement.dispatchEvent(new Event('input', { bubbles: true }));
-      }
-    } else {
-      try {
-        document.execCommand('selectAll', false, null);
-        document.execCommand('delete', false, null);
-        
-        const success = document.execCommand('insertText', false, text);
-        if (!success) {
-          throw new Error('execCommand returned false');
+    function typeNextChar() {
+      if (charIndex < text.length) {
+        currentText += text[charIndex];
+        charIndex++;
+
+        if (inputElement.tagName === 'TEXTAREA') {
+          try {
+            const nativeValueSetter = Object.getOwnPropertyDescriptor(
+              HTMLTextAreaElement.prototype,
+              'value'
+            ).set;
+            nativeValueSetter.call(inputElement, currentText);
+            inputElement.dispatchEvent(new Event('input', { bubbles: true }));
+          } catch (e) {
+            inputElement.value = currentText;
+            inputElement.dispatchEvent(new Event('input', { bubbles: true }));
+          }
+        } else {
+          try {
+            inputElement.focus();
+            document.execCommand('selectAll', false, null);
+            document.execCommand('insertText', false, currentText);
+          } catch (e) {
+            inputElement.innerText = currentText;
+            inputElement.dispatchEvent(new InputEvent('input', { bubbles: true }));
+          }
         }
-      } catch (e) {
-        inputElement.innerText = text;
-        inputElement.dispatchEvent(new InputEvent('input', { bubbles: true }));
-        inputElement.dispatchEvent(new Event('change', { bubbles: true }));
+
+        // Random delay between keypresses (50ms - 130ms)
+        const delay = Math.floor(Math.random() * 80) + 50;
+        setTimeout(typeNextChar, delay);
+      } else {
+        // Finished typing
+        console.log('[LIKOM HELPER] Finished human-like typing!');
+        currentCommentedState = true;
+        syncStatus(currentLikedState, true);
       }
     }
-    
-    currentCommentedState = true;
-    syncStatus(currentLikedState, true);
+
+    typeNextChar();
   }
 })();
