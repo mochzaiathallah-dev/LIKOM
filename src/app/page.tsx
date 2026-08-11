@@ -35,6 +35,7 @@ export default function Home() {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [isMobileDevice, setIsMobileDevice] = useState(false);
+  const [cooldown, setCooldown] = useState(0);
 
   // Detect mobile / tablet device
   useEffect(() => {
@@ -170,8 +171,6 @@ https://www.instagram.com/reel/DbxBUOISw66/`;
     );
   };
 
-  const [cooldown, setCooldown] = useState(0);
-
   // Auto-execute the next uncompleted task with human-like delay protection
   const handleExecuteNext = () => {
     if (cooldown > 0) return;
@@ -278,16 +277,10 @@ https://www.instagram.com/reel/DbxBUOISw66/`;
                 <span className="font-medium hidden sm:inline">Ekstensi Active: Auto-Like & Auto-Komen</span>
                 <span className="font-medium sm:hidden">Extension Active</span>
               </div>
-            ) : isMobileDevice ? (
+            ) : (
               <div className="bg-blue-500/10 border border-blue-500/30 text-blue-400 px-3 py-1.5 rounded-full text-xs flex items-center gap-1.5">
                 <Smartphone className="w-3.5 h-3.5" />
-                <span className="font-medium">Mode HP / Tablet Active</span>
-              </div>
-            ) : (
-              <div className="bg-amber-500/10 border border-amber-500/30 text-amber-300 px-3 py-1.5 rounded-full text-xs flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 text-amber-400 shrink-0" />
-                <span className="hidden sm:inline">Harap buka <code className="bg-amber-950 px-1 py-0.5 rounded text-amber-200">chrome://extensions/</code> lalu klik <b>Segarkan (↺)</b></span>
-                <span className="sm:hidden">Muat Ekstensi</span>
+                <span className="font-medium">Mode Web / HP Active</span>
               </div>
             )}
           </div>
@@ -350,12 +343,18 @@ https://www.instagram.com/reel/DbxBUOISw66/`;
           {/* Guide Card */}
           <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-4 text-xs text-slate-400 space-y-2">
             <h4 className="font-semibold text-slate-200 flex items-center gap-1.5">
-              <Info className="w-4 h-4 text-purple-400" /> Petunjuk Penggunaan:
+              <Info className="w-4 h-4 text-purple-400" /> cara Kerja di HP & Laptop:
             </h4>
-            <ul className="list-disc list-inside space-y-1 pl-1">
-              <li><b>Di Laptop/PC:</b> Gunakan Ekstensi Chrome untuk Auto-Like & Auto-Komen otomatis saat klik Eksekusi.</li>
-              <li><b>Di HP / Tablet:</b> Klik <b className="text-purple-300">Eksekusi (Buka IG)</b> $\rightarrow$ Komentar AI akan <b>otomatis tersalin ke Clipboard HP</b> & Aplikasi Instagram terbuka $\rightarrow$ Tinggal <b>Paste & Kirim!</b></li>
-              <li><b>Jika Pop-up Terblokir di HP:</b> Izinkan pop-up di browser HP ("Selalu Tampilkan / Always Allow").</li>
+            <ul className="list-disc list-inside space-y-1.5 pl-1">
+              <li><b>Di Laptop/PC:</b> Gunakan Ekstensi Chrome untuk Auto-Like & Auto-Komen otomatis di tab Instagram.</li>
+              <li><b>Di HP / Tablet:</b> 
+                <p className="pl-4 mt-0.5 text-slate-300">
+                  1. Klik <b>"Eksekusi (Buka IG)"</b> <br />
+                  2. Komentar AI otomatis <b>tersalin ke Clipboard</b> & App IG terbuka. <br />
+                  3. Tinggal <b>Paste & Kirim</b> di Instagram!
+                </p>
+              </li>
+              <li><b>Status Selesai:</b> Klik ikon <Heart className="w-3 h-3 inline text-rose-400" /> / <MessageSquare className="w-3 h-3 inline text-emerald-400" /> pada kartu untuk menandai selesai secara manual di HP.</li>
             </ul>
           </div>
         </section>
@@ -463,21 +462,31 @@ https://www.instagram.com/reel/DbxBUOISw66/`;
                           )}
                         </div>
 
-                        {/* Realtime Like & Comment status indicators */}
+                        {/* Interactive Like & Comment status indicators */}
                         <div className="flex items-center gap-3 pt-1 text-xs">
                           <button
-                            onClick={() => handleManualToggleStatus(task.postId, live.isLiked, live.isCommented)}
-                            className={`flex items-center gap-1.5 font-medium hover:opacity-80 transition-opacity ${live.isLiked ? 'text-rose-400' : 'text-slate-500'}`}
+                            onClick={() => handleManualToggleStatus(task.postId, !live.isLiked, live.isCommented)}
+                            className={`flex items-center gap-1.5 font-medium px-2 py-0.5 rounded border transition-all ${
+                              live.isLiked 
+                                ? 'bg-rose-500/10 border-rose-500/30 text-rose-400' 
+                                : 'bg-slate-800/80 border-slate-700 text-slate-400 hover:text-slate-200'
+                            }`}
+                            title="Klik untuk mengubah status Like"
                           >
-                            <Heart className={`w-3.5 h-3.5 ${live.isLiked ? 'fill-rose-500 text-rose-500' : 'text-slate-500'}`} />
-                            {live.isLiked ? 'Sudah Di-Like' : 'Belum Like'}
+                            <Heart className={`w-3.5 h-3.5 ${live.isLiked ? 'fill-rose-500 text-rose-500' : 'text-slate-400'}`} />
+                            {live.isLiked ? 'Sudah Di-Like' : 'Tandai Like'}
                           </button>
                           <button
-                            onClick={() => handleManualToggleStatus(task.postId, live.isLiked, live.isCommented)}
-                            className={`flex items-center gap-1.5 font-medium hover:opacity-80 transition-opacity ${live.isCommented ? 'text-emerald-400' : 'text-slate-500'}`}
+                            onClick={() => handleManualToggleStatus(task.postId, live.isLiked, !live.isCommented)}
+                            className={`flex items-center gap-1.5 font-medium px-2 py-0.5 rounded border transition-all ${
+                              live.isCommented 
+                                ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' 
+                                : 'bg-slate-800/80 border-slate-700 text-slate-400 hover:text-slate-200'
+                            }`}
+                            title="Klik untuk mengubah status Komen"
                           >
                             <MessageSquare className="w-3.5 h-3.5" />
-                            {live.isCommented ? 'Sudah Di-Komen' : 'Belum Komen'}
+                            {live.isCommented ? 'Sudah Di-Komen' : 'Tandai Komen'}
                           </button>
                         </div>
                       </div>
