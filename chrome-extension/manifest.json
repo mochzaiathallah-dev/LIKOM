@@ -1,0 +1,29 @@
+{
+  "manifest_version": 3,
+  "name": "LIKOM Semi-Auto Helper",
+  "version": "1.1",
+  "description": "Auto-fills Instagram comments based on instructions and post caption, auto-detecting likes & comments in real-time.",
+  "permissions": [
+    "storage",
+    "tabs"
+  ],
+  "host_permissions": [
+    "http://localhost:3000/*",
+    "*://*.instagram.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "*://*.instagram.com/*",
+        "http://localhost:3000/*"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ]
+}
